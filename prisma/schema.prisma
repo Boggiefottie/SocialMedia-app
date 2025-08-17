@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String         @id @default(cuid())
+  email             String         @unique
+  username          String         @unique
+  firstName         String
+  lastName          String
+  passwordHash      String
+  role              Role           @default(USER)
+  isActive          Boolean        @default(true)
+  emailVerified     Boolean        @default(false)
+  lastLoginAt       DateTime?
+  profile           Profile?
+  posts             Post[]
+  likes             Like[]
+  comments          Comment[]
+  followers         Follow[]       @relation("followers")
+  following         Follow[]       @relation("following")
+  notifications     Notification[] @relation("recipientRel")
+  sentNotifications Notification[] @relation("senderRel")
+
+  // 🔽 Add these relations
+  refreshTokens       RefreshToken[]
+  verificationTokens  VerificationToken[]
+  passwordResetTokens PasswordResetToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Profile {
+  id         String     @id @default(cuid())
+  userId     String     @unique
+  user       User       @relation(fields: [userId], references: [id])
+  bio        String     @default("")
+  avatarUrl  String?
+  website    String?
+  location   String?
+  visibility Visibility @default(PUBLIC)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Post {
+  id           String       @id @default(cuid())
+  authorId     String
+  author       User         @relation(fields: [authorId], references: [id])
+  content      String
+  imageUrl     String?
+  category     PostCategory @default(GENERAL)
+  isActive     Boolean      @default(true)
+  likeCount    Int          @default(0)
+  commentCount Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  likes        Like[]
+  comments     Comment[]
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  follower    User     @relation("following", fields: [followerId], references: [id])
+  following   User     @relation("followers", fields: [followingId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  user      User     @relation(fields: [userId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  authorId  String
+  postId    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id])
+  post   Post @relation(fields: [postId], references: [id])
+}
+
+model Notification {
+  id               String           @id @default(cuid())
+  recipientId      String
+  senderId         String
+  notificationType NotificationType
+  postId           String?
+  message          String
+  isRead           Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+
+  recipient User @relation("recipientRel", fields: [recipientId], references: [id])
+  sender    User @relation("senderRel", fields: [senderId], references: [id])
+}
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  userId      String
+  token       String   @unique
+  blacklisted Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  FOLLOWERS_ONLY
+}
+
+enum NotificationType {
+  FOLLOW
+  LIKE
+  COMMENT
+}
+
+enum PostCategory {
+  GENERAL
+  ANNOUNCEMENT
+  QUESTION
+}

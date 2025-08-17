@@ -10,9 +10,11 @@ const REFRESH_EXPIRES = process.env.REFRESH_TOKEN_EXPIRES || '7d';
 export type JWTPayload = { id: string; role: Role };
 
 export function signAccessToken(payload: JWTPayload) {
+  //@ts-ignore
   return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_EXPIRES });
 }
 export function signRefreshToken(payload: JWTPayload) {
+  //@ts-ignore
   return jwt.sign(payload, JWT_SECRET, { expiresIn: REFRESH_EXPIRES });
 }
 export function verifyToken(token: string): JWTPayload | null {
